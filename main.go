@@ -4,22 +4,11 @@ import (
 	"ManganKu_BE/controllers/router"
 	"ManganKu_BE/database"
 	"ManganKu_BE/database/migration"
-	"fmt"
 	"log"
 	"os"
 
 	"github.com/gofiber/fiber/v2"
-	"gorm.io/gorm"
 )
-
-func CloseDB(db *gorm.DB) {
-	sqlDB, err := db.DB()
-	if err != nil {
-		log.Fatal(err)
-	}
-	sqlDB.Close()
-	fmt.Println("Database connection closed")
-}
 
 func main() {
 	// Determine port for HTTP service.
@@ -30,7 +19,7 @@ func main() {
 	}
 	// Initial Database Connection
 	database.DatabaseConnection()
-	defer CloseDB(database.DB)
+	defer database.CloseDB()
 
 	// Initial Migration Table
 	migration.RunMigration()
