@@ -15,7 +15,8 @@ func APIGroup(r *fiber.App) {
 	repo := controllers.RouteController()
 
 	apiGroup := r.Group("/api")
-	routes.BookRoutes(apiGroup, repo)
+	routes.RecipeRoutes(apiGroup, repo)
 	routes.AuthRoutes(apiGroup, repo)
+	routes.IngredientRoutes(apiGroup, repo)
 
 }
