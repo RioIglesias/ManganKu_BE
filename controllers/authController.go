@@ -13,6 +13,10 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+/*
+!This Method for auth user, don't change anything from this method
+*/
+
 var SECRET_KEY string = os.Getenv("SECRET_KEY")
 
 func (r *Repository) SignUpUser(c *fiber.Ctx) error {
