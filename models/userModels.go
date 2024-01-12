@@ -14,7 +14,7 @@ type User struct {
 	Password  string     `gorm:"type:varchar;not null"`
 	Role      *int       `gorm:"type:int;default:1;not null"`
 	Provider  *string    `gorm:"type:varchar(50);default:'local';not null"`
-	Photo     *string    `gorm:"not null;default:'default.png'"`
+	Photo     *string    `gorm:"null;default:''"`
 	Verified  *bool      `gorm:"not null;default:false"`
 	CreatedAt *time.Time `gorm:"not null;default:now()"`
 	UpdatedAt *time.Time `gorm:"not null;default:now()"`
