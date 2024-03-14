@@ -18,6 +18,7 @@ import (
 var DB *gorm.DB
 
 func DatabaseConnection() {
+	// loc, _ := time.LoadLocation("Asia/Jakarta")
 	mustGetenv := func(k string) string {
 		v := os.Getenv(k)
 		if v == "" {
@@ -36,7 +37,7 @@ func DatabaseConnection() {
 		DBHost   = mustGetenv("DB_HOST")
 	)
 	dsn := fmt.Sprintf(
-		"user=%s password=%s dbname=%s host=%s sslmode=disable",
+		"user=%s password=%s dbname=%s host=%s sslmode=disable TimeZone=Asia/Jakarta",
 		User, Password, DBName, DBHost,
 	)
 	// *TODO: Conmment this code for connecting to localhost and don't forget to change the .env
