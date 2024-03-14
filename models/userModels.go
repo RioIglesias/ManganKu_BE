@@ -8,7 +8,8 @@ import (
 )
 
 type User struct {
-	ID        *uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4();primary_key"`
+	User_ID   *uint      `gorm:"primary_key"`
+	User_UUID *uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4();uniqueIndex"`
 	Name      string     `gorm:"type:varchar(50);not null"`
 	Username  string     `gorm:"type:varchar(50);uniqueIndex;not null"`
 	Password  string     `gorm:"type:varchar;not null"`
@@ -33,8 +34,20 @@ type SignInInput struct {
 	Password string `json:"password"  validate:"required"`
 }
 
+type UserDetail struct {
+	User_ID  *uint   `gorm:"primary_key"`
+	Name     string  `gorm:"type:varchar(50);not null"`
+	Username string  `gorm:"type:varchar(50);uniqueIndex;not null"`
+	Role     *int    `gorm:"type:int;default:1;not null"`
+	Provider *string `gorm:"type:varchar(50);default:'local';not null"`
+	Photo    *string `gorm:"null;default:''"`
+	Verified *bool   `gorm:"not null;default:false"`
+	User     User    `gorm:"foreignKey:Username;references:Username"`
+}
+
 type UserResponse struct {
-	ID        uuid.UUID `json:"id,omitempty"`
+	User_ID   uint      `json:"user_id"`
+	User_UUID uuid.UUID `json:"id,omitempty"`
 	Name      string    `json:"name,omitempty"`
 	Username  string    `json:"username,omitempty"`
 	Role      int       `json:"role,omitempty"`
@@ -46,7 +59,8 @@ type UserResponse struct {
 
 func FilterUserRecord(user *User) UserResponse {
 	return UserResponse{
-		ID:        *user.ID,
+		User_ID:   *user.User_ID,
+		User_UUID: *user.User_UUID,
 		Name:      user.Name,
 		Username:  user.Username,
 		Role:      *user.Role,
