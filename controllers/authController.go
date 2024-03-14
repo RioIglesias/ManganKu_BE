@@ -31,6 +31,13 @@ func (r *Repository) SignUpUser(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": "fail", "errors": errors})
 
 	}
+	if strings.Contains(payload.Password, " ") || strings.Contains(payload.PasswordConfirm, " ") {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": "fail", "message": "Password or password confirmation cannot contain spaces"})
+	}
+
+	if strings.ContainsAny(payload.Username, " !@#$%^&*()-_+={}[]|\\;:'\",.<>?/~`") {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": "fail", "message": "Username cannot contain spaces or symbols"})
+	}
 
 	if payload.Password != payload.PasswordConfirm {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": "fail", "message": "Passwords do not match"})
@@ -56,8 +63,16 @@ func (r *Repository) SignUpUser(c *fiber.Ctx) error {
 	} else if result.Error != nil {
 		return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"status": "error", "message": "Something bad happened"})
 	}
-
+	newUserDetail := models.UserDetail{
+		Name:     newUser.Name,
+		Username: newUser.Username,
+		// Isi kolom lainnya sesuai kebutuhan
+	}
+	if err := database.DB.Save(&newUserDetail).Error; err != nil {
+		return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"status": "error", "message": "Something bad happened"})
+	}
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"status": "success", "data": fiber.Map{"user": models.FilterUserRecord(&newUser)}})
+
 }
 
 func (r *Repository) SignInUser(c *fiber.Ctx) error {
@@ -89,7 +104,7 @@ func (r *Repository) SignInUser(c *fiber.Ctx) error {
 	now := time.Now().UTC()
 	claims := tokenByte.Claims.(jwt.MapClaims)
 
-	claims["sub"] = user.ID
+	claims["sub"] = user.User_ID
 	claims["iat"] = now.Unix()
 	claims["nbf"] = now.Unix()
 
