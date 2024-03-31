@@ -15,4 +15,8 @@ func AuthRoutes(group fiber.Router, repo *controllers.Repository) {
 
 	// Rute for logout
 	group.Post("/logout", repo.LogoutUser)
+
+	// Rute for get user data
+	group.Get("/users/:id", repo.GetUserData)
+	group.Get("/user/", repo.GetAllUser)
 }
