@@ -7,6 +7,9 @@ import (
 )
 
 func IngredientRoutes(group fiber.Router, repo *controllers.Repository) {
+	// Rute for create ingredients
+	group.Post("/create-ingredients", repo.CreateIngredients)
 	// Rute for create recipes
 	group.Get("/get-ingredients", repo.GetIngredientsPerPage)
+
 }
