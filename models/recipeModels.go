@@ -8,12 +8,14 @@ type Recipe struct {
 	ID             uint            `gorm:"primary_key"`
 	Name           string          `gorm:"type:varchar;not null"`
 	MainPhoto      string          `gorm:"not null"`
+	Category       Category        `gorm:"foreignKey:ID"`
 	Duration       int             `gorm:"type:int;not null"`
 	Ingredients    []Ingredient    `gorm:"many2many:recipe_ingredient"`
 	DirectionCooks []DirectionCook `gorm:"foreignKey:RecipeID"`
 	Upload         *bool           `gorm:"not null;default:false"`
 	Sell           *bool           `gorm:"not null;default:false"`
-	CreatedBy      string          `gorm:"foreignKey:Username"`
+	CreatedBy      string          `gorm:"not null"`
+	Favorite       int
 	CreatedAt      string
 	UpdatedAt      *time.Time `gorm:"not null;default:now()"`
 }
@@ -21,6 +23,7 @@ type Recipe struct {
 type CreateRecipe struct {
 	Name        string          `json:"name"`
 	MainPhoto   string          `json:"mainphoto"`
+	Category    Category        `json:"category"`
 	Duration    int             `json:"duration"`
 	Ingredients []Ingredient    `json:"ingredients"`
 	Directions  []DirectionCook `json:"directions"`
