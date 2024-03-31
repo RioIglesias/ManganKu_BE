@@ -24,11 +24,6 @@ func (r *Repository) CreateIngredients(c *fiber.Ctx) error {
 	// 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": "fail", "message": "Nutrition not found"})
 	// 	}
 	// }
-	existingIngredient := models.Ingredient{}
-	duplicateCheck := database.DB.Where("name = ?", payload.Name).Find(&existingIngredient)
-	if duplicateCheck.RowsAffected > 0 {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": "fail", "message": "Ingredient with the same name already exists"})
-	}
 
 	// Setelah validasi, buat objek newIngredient
 	newIngredient := models.Ingredient{
@@ -36,7 +31,10 @@ func (r *Repository) CreateIngredients(c *fiber.Ctx) error {
 		Value: payload.Value,
 		// Nutritions: payload.Nutritions,
 	}
-
+	duplicateCheck := database.DB.Where("name = ?", payload.Name).Find(&newIngredient)
+	if duplicateCheck.RowsAffected > 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": "fail", "message": "Ingredient with the same name already exists"})
+	}
 	result := database.DB.Create(&newIngredient)
 
 	if result.Error != nil {
@@ -45,19 +43,19 @@ func (r *Repository) CreateIngredients(c *fiber.Ctx) error {
 
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"data": fiber.Map{"ingredient": newIngredient}, "status": "success"})
 }
-
+// idk wht is this
 func (r *Repository) GetIngredients(context *fiber.Ctx) error {
 	var payload *models.CreateIngredient
 
 	err := r.DB.Find(payload).Error
 	if err != nil {
 		context.Status(http.StatusBadRequest).JSON(
-			&fiber.Map{"message": "could not get books"})
+			&fiber.Map{"message": "could not get ingredient"})
 		return err
 	}
 
 	context.Status(http.StatusOK).JSON(&fiber.Map{
-		"message": "books fetched successfully",
+		"message": "ingredient fetched successfully",
 		"data":    payload,
 	})
 	return nil
@@ -91,4 +89,3 @@ func (r *Repository) GetIngredientsPerPage(c *fiber.Ctx) error {
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{"status": "success", "data": fiber.Map{"ingredients": ingredients}, "page": pageStr, "items": perPageStr})
 }
-
