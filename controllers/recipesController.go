@@ -6,6 +6,7 @@ import (
 	"ManganKu_BE/helpers"
 	"ManganKu_BE/models"
 	"io"
+	"math/rand"
 	"net/http"
 	"strconv"
 	"strings"
@@ -27,12 +28,21 @@ func (r *Repository) CreateRecipe(c *fiber.Ctx) error {
 	if result.Error != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": "fail", "message": "User not found"})
 	}
+	// Sebelum membuat objek recipes
+	for _, Ingredient := range payload.Ingredients {
+		existingIngredient := models.Ingredient{}
+		if err := database.DB.Where("name = ?", Ingredient.Name).First(&existingIngredient).Error; err != nil {
+			// Ingredient tidak ditemukan, berikan respons atau tambahkan ke database jika diperlukan
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": "fail", "message": "Ingredient not found"})
+		}
+	}
 
 	// Buat objek Recipe
 	newRecipe := models.Recipe{
 		Name:           payload.Name,
 		MainPhoto:      payload.MainPhoto,
 		Duration:       payload.Duration,
+		Category:       payload.Category,
 		DirectionCooks: payload.Directions,
 		Ingredients:    payload.Ingredients, // Langsung gunakan bahan makanan yang diterima dari payload
 		Upload:         payload.Upload,
@@ -107,6 +117,43 @@ func (r *Repository) GetRecipesPerPage(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{"status": "success", "data": fiber.Map{"recipes": recipes}, "page": pageStr, "per_page": perPagestr})
 }
 
+func (r *Repository) GetRecipes(c *fiber.Ctx) error {
+	limitstr := c.Query("limit", "10")
+	limit, err := strconv.Atoi(limitstr)
+	if err != nil || limit <= 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": "fail", "message": "Invalid per_page value"})
+	}
+
+	offset := limit
+
+	username := c.Query("user", "")
+
+	var recipes []models.Recipe
+	query := database.DB.Preload("Ingredients").Preload("DirectionCooks")
+	if username != "" {
+		query = query.Where("created_by = ?", username)
+	}
+	result := query.Offset(offset).Limit(limit).Find(&recipes)
+
+	if result.Error != nil {
+		return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"status": "error", "message": "Something bad happened"})
+	}
+	rand.Shuffle(len(recipes), func(i, j int) {
+		recipes[i], recipes[j] = recipes[j], recipes[i]
+	})
+	for i := range recipes {
+		// Ubah URL gambar utama
+		recipes[i].MainPhoto = c.BaseURL() + "/storage/recipes/images/thumbnail/" + strings.ReplaceAll(recipes[i].CreatedAt, "-", "") + strconv.Itoa(int(recipes[i].ID)) + ".png"
+
+		// Ubah URL gambar langkah-langkah
+		for j := range recipes[i].DirectionCooks {
+			recipes[i].DirectionCooks[j].Image = c.BaseURL() + "/storage/recipes/images/direction-cook/" + strings.ReplaceAll(recipes[i].CreatedAt, "-", "") + strconv.Itoa(int(recipes[i].DirectionCooks[j].ID)) + ".png"
+		}
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{"status": "success", "data": fiber.Map{"recipes": recipes}, "limit": limitstr})
+}
+
 func (r *Repository) GetRecipeThubmnailImage(c *fiber.Ctx) error {
 	imageID := c.Params("id")
 
@@ -144,7 +191,7 @@ func (r *Repository) GetRecipesDirectionCookImage(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).Type("png").Send(imgByte)
 }
 
-	// Test for upload file
+// Test for upload file
 func (r *Repository) UploadFile(c *fiber.Ctx) error {
 	// Ambil file yang diunggah dari permintaan HTTP
 	file, err := c.FormFile("file")
