@@ -16,7 +16,8 @@ func (r *Repository) CreateCategory(c *fiber.Ctx) error {
 
 	// Setelah validasi, buat objek newCategory
 	newCategory := models.Category{
-		Name: payload.Name,
+		Name:  payload.Name,
+		Image: payload.Image,
 	}
 	duplicateCheck := database.DB.Where("Name = ?", payload.Name).Find(&newCategory)
 	if duplicateCheck.RowsAffected > 0 {
