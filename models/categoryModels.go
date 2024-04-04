@@ -1,10 +1,14 @@
 package models
 
 type Category struct {
-	CategoryID   uint   `gorm:"primary_key"`
-	Name string `gorm:"not null"`
+	ID            uint   `gorm:"primary_key"`
+	Name          string `gorm:"not null;uniqueIndex"`
+	Image         string
+	FileNameImage string `gorm:"uniqueIndex" json:"-"`
 }
 
 type CreateCategory struct {
-	Name string `json:"name"`
+	ID    uint   `json:"ID"`
+	Name  string `json:"name"`
+	Image string `json:"image"`
 }
