@@ -17,8 +17,9 @@ type User struct {
 	Role            *int       `gorm:"type:int;default:1;not null"`
 	Provider        *string    `gorm:"type:varchar(50);default:'local';not null"`
 	FavoriteRecipes []Recipe   `gorm:"many2many:user_favorite_recipes;"`
-	Photo           *string    `gorm:"null;default:''"`
+	Photo           string    `gorm:"null;default:''"`
 	Verified        *bool      `gorm:"not null;default:false"`
+	FileNamePhoto   string     `gorm:"uniqueIndex"`
 	CreatedAt       *time.Time `gorm:"not null;default:now()"`
 	UpdatedAt       *time.Time `gorm:"not null;default:now()"`
 }
@@ -55,7 +56,7 @@ func FilterUserRecord(user *User) UserResponse {
 		Username:        user.Username,
 		FavoriteRecipes: user.FavoriteRecipes,
 		Role:            *user.Role,
-		Photo:           *user.Photo,
+		Photo:           user.Photo,
 		Provider:        *user.Provider,
 		CreatedAt:       *user.CreatedAt,
 		UpdatedAt:       *user.UpdatedAt,
@@ -66,14 +67,15 @@ func FilterAllUserRecord(users []User) []UserResponse {
 	var filteredUsers []UserResponse
 	for _, user := range users {
 		filteredUsers = append(filteredUsers, UserResponse{
-			User_ID:   user.User_ID,
-			Name:      user.Name,
-			Username:  user.Username,
-			Role:      *user.Role,
-			Photo:     *user.Photo,
-			Provider:  *user.Provider,
-			CreatedAt: *user.CreatedAt,
-			UpdatedAt: *user.UpdatedAt,
+			User_ID:         user.User_ID,
+			Name:            user.Name,
+			Username:        user.Username,
+			FavoriteRecipes: user.FavoriteRecipes,
+			Role:            *user.Role,
+			Photo:           user.Photo,
+			Provider:        *user.Provider,
+			CreatedAt:       *user.CreatedAt,
+			UpdatedAt:       *user.UpdatedAt,
 		})
 	}
 	return filteredUsers
