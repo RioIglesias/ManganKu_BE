@@ -2,8 +2,8 @@ package controllers
 
 import (
 	"ManganKu_BE/database"
+	"ManganKu_BE/helpers"
 	"ManganKu_BE/models"
-	"net/http"
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
@@ -28,7 +28,8 @@ func (r *Repository) CreateIngredients(c *fiber.Ctx) error {
 	// Setelah validasi, buat objek newIngredient
 	newIngredient := models.Ingredient{
 		Name:  payload.Name,
-		Value: payload.Value,
+		Image: payload.Image,
+		FileNameImage: helpers.FileName(),
 		// Nutritions: payload.Nutritions,
 	}
 	duplicateCheck := database.DB.Where("name = ?", payload.Name).Find(&newIngredient)
@@ -43,22 +44,32 @@ func (r *Repository) CreateIngredients(c *fiber.Ctx) error {
 
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"data": fiber.Map{"ingredient": newIngredient}, "status": "success"})
 }
-// idk wht is this
-func (r *Repository) GetIngredients(context *fiber.Ctx) error {
-	var payload *models.CreateIngredient
 
-	err := r.DB.Find(payload).Error
-	if err != nil {
-		context.Status(http.StatusBadRequest).JSON(
-			&fiber.Map{"message": "could not get ingredient"})
-		return err
+// idk wht is this
+func (r *Repository) GetIngredients(c *fiber.Ctx) error {
+	limitstr := c.Query("limit", "10")
+	limit, err := strconv.Atoi(limitstr)
+	if err != nil || limit <= 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": "fail", "message": "Invalid per_page value"})
 	}
 
-	context.Status(http.StatusOK).JSON(&fiber.Map{
-		"message": "ingredient fetched successfully",
-		"data":    payload,
-	})
-	return nil
+	offset := limit
+
+	var ingredients []models.Ingredient
+	result := database.DB.Offset(offset).Limit(limit).Find(&ingredients)
+
+	if result.Error != nil {
+		return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"status": "error", "message": "Something bad happened"})
+	}
+
+	for i := range ingredients {
+		// Ubah URL gambar utama
+		if ingredients[i].Image != "" {
+			ingredients[i].Image = c.BaseURL() + "/api/storage/ingredient/images/" + ingredients[i].FileNameImage + ".png"
+		}
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{"status": "success", "data": fiber.Map{"ingredients": ingredients}, "limit": limitstr})
 }
 
 func (r *Repository) GetIngredientsPerPage(c *fiber.Ctx) error {
@@ -83,9 +94,34 @@ func (r *Repository) GetIngredientsPerPage(c *fiber.Ctx) error {
 	var ingredients []models.Ingredient
 	result := database.DB.Offset(offset).Limit(perPage).Find(&ingredients)
 
+	for i := range ingredients {
+		// Ubah URL gambar utama
+		if ingredients[i].Image != "" {
+			ingredients[i].Image = c.BaseURL() + "/api/storage/ingredient/images/" + ingredients[i].FileNameImage + ".png"
+		}
+	}
+
 	if result.Error != nil {
 		return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"status": "error", "message": "Something bad happened"})
 	}
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{"status": "success", "data": fiber.Map{"ingredients": ingredients}, "page": pageStr, "items": perPageStr})
+}
+
+func (r *Repository) GetIngredientImage(c *fiber.Ctx) error {
+	imageID := c.Params("id")
+
+	// Ambil data resep dari database berdasarkan ID
+	var ingredients models.Ingredient
+	if err := database.DB.Where("file_name_image = ?", imageID).First(&ingredients).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"status": "error", "message": "ingredients not found"})
+	}
+	// Konversi gambar utama ke format PNG
+	imgByte, err := helpers.Base64toPng(ingredients.Image)
+	if err != nil {
+		return c.SendStatus(fiber.StatusInternalServerError)
+	}
+
+	// Kirim gambar sebagai respons dengan tipe konten yang sesuai
+	return c.Status(fiber.StatusOK).Type("png").Send(imgByte)
 }
