@@ -19,5 +19,6 @@ func APIGroup(r *fiber.App) {
 	routes.AuthRoutes(apiGroup, repo)
 	routes.IngredientRoutes(apiGroup, repo)
 	routes.CategoryRouter(apiGroup, repo)
+	routes.SearchRoutes(apiGroup, repo)
 
 }
