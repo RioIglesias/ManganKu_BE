@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"ManganKu_BE/database"
+	"ManganKu_BE/helpers"
 	"ManganKu_BE/models"
 	"fmt"
 	"os"
@@ -125,7 +126,9 @@ func (r *Repository) GetUserData(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"status": "error", "message": "User not found"})
 	}
 	// Konversi gambar utama ke format PNG
-
+	if user.Photo != "" {
+		user.Photo = c.BaseURL() + "/api/storage/recipes/images/thumbnail/" + user.FileNamePhoto + ".png"
+	}
 	// Kirim gambar sebagai respons dengan tipe konten yang sesuai
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{"status": "success", "data": fiber.Map{"user": models.FilterUserRecord(&user)}})
 
@@ -141,4 +144,22 @@ func (r *Repository) GetAllUser(c *fiber.Ctx) error {
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{"status": "success", "data": fiber.Map{"user": filteredUsers}})
 
+}
+
+func (r *Repository) GetPhotoProfile(c *fiber.Ctx) error {
+	imageID := c.Params("id")
+
+	// Ambil data resep dari database berdasarkan ID
+	var user models.User
+	if err := database.DB.Where("file_name_image = ?", imageID).First(&user).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"status": "error", "message": "user not found"})
+	}
+	// Konversi gambar utama ke format PNG
+	imgByte, err := helpers.Base64toPng(user.Photo)
+	if err != nil {
+		return c.SendStatus(fiber.StatusInternalServerError)
+	}
+
+	// Kirim gambar sebagai respons dengan tipe konten yang sesuai
+	return c.Status(fiber.StatusOK).Type("png").Send(imgByte)
 }
