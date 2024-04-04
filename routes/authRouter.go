@@ -17,6 +17,10 @@ func AuthRoutes(group fiber.Router, repo *controllers.Repository) {
 	group.Post("/logout", repo.LogoutUser)
 
 	// Rute for get user data
-	group.Get("/users/:id", repo.GetUserData)
-	group.Get("/user/", repo.GetAllUser)
+	group.Get("/user/:id", repo.GetUserData)
+	group.Get("/users", repo.GetAllUser)
+
+	// Rute for get photo profile
+	group.Get("/storage/user/images/:id.png", repo.GetPhotoProfile)
+
 }
