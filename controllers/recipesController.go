@@ -7,7 +7,7 @@ import (
 	"ManganKu_BE/models"
 	"fmt"
 	"io"
-	"math/rand"
+	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -78,14 +78,13 @@ func (r *Repository) CreateRecipe(c *fiber.Ctx) error {
 	if result.Error != nil {
 		return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"status": "error", "message": "Something bad happened when create recipe"})
 	}
-
-	// lastname := rand.Intn(9000) + 1000
+	database.DB.Preload("Ingredients.Ingredient").Find(&newRecipe)
 
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"status": "success", "data": fiber.Map{"recipe": models.FilterRecipeRecord(&newRecipe)}})
 }
 
-func (r *Repository) GetRecipesPerPage(c *fiber.Ctx) error {
-	perPagestr := c.Query("per_page", "10")
+func (r *Repository) GetUserRecipes(c *fiber.Ctx) error {
+	perPagestr := c.Query("perpage", "10")
 	perPage, err := strconv.Atoi(perPagestr)
 	if err != nil || perPage <= 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": "fail", "message": "Invalid per_page value"})
@@ -99,7 +98,10 @@ func (r *Repository) GetRecipesPerPage(c *fiber.Ctx) error {
 
 	offset := (page - 1) * perPage
 
-	username := c.Query("user", "")
+	username := c.Params("id", "")
+	if username == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": "fail", "message": "Username is required"})
+	}
 
 	var recipes []models.Recipe
 	query := database.DB.Preload("Ingredients").Preload("DirectionCooks").Preload("Category").Preload("Ingredients.Ingredient")
@@ -108,6 +110,10 @@ func (r *Repository) GetRecipesPerPage(c *fiber.Ctx) error {
 	}
 	result := query.Offset(offset).Limit(perPage).Find(&recipes)
 
+	var totalRecords int64
+	database.DB.Model(&models.Recipe{}).Count(&totalRecords)
+	totalPages := int(math.Ceil(float64(totalRecords) / float64(perPage)))
+
 	if result.Error != nil {
 		return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"status": "error", "message": "Something bad happened"})
 	}
@@ -125,41 +131,45 @@ func (r *Repository) GetRecipesPerPage(c *fiber.Ctx) error {
 		}
 	}
 
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{"status": "success", "data": fiber.Map{"recipes": models.FilterRecipeRecordList(recipes)}, "page": pageStr, "per_page": perPagestr})
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{"status": "success", "data": fiber.Map{"recipes": models.FilterRecipeRecordList(recipes)}, "page": pageStr, "per_page": perPagestr, "total_page": totalPages})
 }
 
 func (r *Repository) GetRecipes(c *fiber.Ctx) error {
-	limitstr := c.Query("limit", "10")
-	limit, err := strconv.Atoi(limitstr)
+	// Get pagination parameters
+	limitStr := c.Query("_limit", "10")
+	limit, err := strconv.Atoi(limitStr)
 	if err != nil || limit <= 0 {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": "fail", "message": "Invalid per_page value"})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": "fail", "message": "Invalid limit value"})
 	}
-
-	offset := limit
+	startStr := c.Query("start", "0") // Assuming start is passed in the query params
+	start, err := strconv.Atoi(startStr)
+	if err != nil || start < 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": "fail", "message": "Invalid start value"})
+	}
 
 	username := c.Query("user", "")
 
 	var recipes []models.Recipe
-	query := database.DB.Preload("Ingredients").Preload("DirectionCooks")
+	query := database.DB.Preload("Ingredients").Preload("DirectionCooks").Preload("Category").Preload("Ingredients.Ingredient").Preload("User")
 	if username != "" {
 		query = query.Where("created_by = ?", username)
 	}
-	result := query.Offset(offset).Limit(limit).Find(&recipes)
+
+	// Calculate the start based on the page number and limit
+	// start = start * limit
+
+	result := query.Offset(start).Limit(limit).Find(&recipes)
 
 	if result.Error != nil {
-		return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"status": "error", "message": "Something bad happened"})
+		return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"status": "error", "message": "Failed to fetch recipes"})
 	}
-	rand.Shuffle(len(recipes), func(i, j int) {
-		recipes[i], recipes[j] = recipes[j], recipes[i]
-	})
 
+	// Modify URLs for images
 	for i := range recipes {
-		// Ubah URL gambar utama
 		if recipes[i].MainPhoto != "" {
 			recipes[i].MainPhoto = c.BaseURL() + "/api/storage/recipes/images/thumbnail/" + recipes[i].MainPhotoName + ".png"
 		}
 
-		// Ubah URL gambar langkah-langkah
 		for j := range recipes[i].DirectionCooks {
 			if recipes[i].DirectionCooks[j].Image != "" {
 				recipes[i].DirectionCooks[j].Image = c.BaseURL() + "/api/storage/recipes/images/direction-cook/" + recipes[i].DirectionCooks[j].ImageName + ".png"
@@ -167,7 +177,7 @@ func (r *Repository) GetRecipes(c *fiber.Ctx) error {
 		}
 	}
 
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{"status": "success", "data": fiber.Map{"recipes": recipes}, "limit": limitstr})
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{"status": "success", "data": fiber.Map{"recipes": models.FilterRecipeRecordList(recipes)}, "limit": limitStr, "start": start})
 }
 
 func (r *Repository) GetRecipeThubmnailImage(c *fiber.Ctx) error {
