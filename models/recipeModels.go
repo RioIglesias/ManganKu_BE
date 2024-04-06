@@ -16,8 +16,8 @@ type Recipe struct {
 	Upload         *bool           `gorm:"not null;default:false"`
 	Sell           *bool           `gorm:"not null;default:false"`
 	CreatedBy      uint            `gorm:"not null"`
-	User           User            `gorm:"foreignKey:CreatedBy"`
-	Favorite       int
+	User           User            `gorm:"foreignKey:CreatedBy" json:"-"`
+	Likes          int
 	CreatedAt      string
 	MainPhotoName  string     `gorm:"uniqueIndex" json:"-"`
 	UpdatedAt      *time.Time `gorm:"not null;default:now()"`
@@ -58,11 +58,13 @@ type RecipeResponse struct {
 	MainPhoto   string           `json:"mainphoto"`
 	CategoryID  int              `json:"category"`
 	Duration    int              `json:"duration"`
+	Favorite    int              `json:"favorite"`
 	Ingredients []IngredientList `json:"ingredients"`
 	Directions  []DirectionCook  `json:"directions"`
 	Upload      *bool            `json:"upload"`
 	Sell        *bool            `json:"sell"`
-	CreatedBy   uint             `json:"created_by"`
+	CreatedBy   uint             `json:"created_by_id"`
+	User        string           `json:"created_by_name,omitempty"`
 }
 
 func FilterRecipeRecord(recipe *Recipe) RecipeResponse {
@@ -73,11 +75,13 @@ func FilterRecipeRecord(recipe *Recipe) RecipeResponse {
 		MainPhoto:   recipe.MainPhoto,
 		CategoryID:  recipe.CategoryID,
 		Duration:    recipe.Duration,
+		Favorite:    recipe.Likes,
 		Ingredients: recipe.Ingredients,
 		Directions:  recipe.DirectionCooks,
 		Upload:      recipe.Upload,
 		Sell:        recipe.Sell,
 		CreatedBy:   recipe.CreatedBy,
+		User:        recipe.User.Username,
 	}
 }
 
@@ -91,11 +95,13 @@ func FilterRecipeRecordList(recipes []Recipe) []RecipeResponse {
 			MainPhoto:   recipe.MainPhoto,
 			CategoryID:  recipe.CategoryID,
 			Duration:    recipe.Duration,
+			Favorite:    recipe.Likes,
 			Ingredients: recipe.Ingredients,
 			Directions:  recipe.DirectionCooks,
 			Upload:      recipe.Upload,
 			Sell:        recipe.Sell,
 			CreatedBy:   recipe.CreatedBy,
+			User:        recipe.User.Username,
 		})
 	}
 	return filteredRecipes
@@ -105,7 +111,7 @@ type IngredientList struct {
 	ID           uint       `gorm:"primary_key"`
 	RecipeID     uint       `gorm:"not null"`
 	IngredientID uint       `gorm:"not null"`
-	Ingredient   Ingredient `gorm:"foreignKey:IngredientID" json:"-"`
+	Ingredient   Ingredient `gorm:"foreignKey:IngredientID" json:"ingredient"`
 	Quantity     int        `gorm:"not null"`
 	PortionSize  int        `gorm:"not null"`
 	Unit         string     `gorm:"not null"`
