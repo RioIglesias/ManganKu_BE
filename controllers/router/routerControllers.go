@@ -20,5 +20,6 @@ func APIGroup(r *fiber.App) {
 	routes.IngredientRoutes(apiGroup, repo)
 	routes.CategoryRouter(apiGroup, repo)
 	routes.SearchRoutes(apiGroup, repo)
+	routes.LikesRoutes(apiGroup, repo)
 
 }
