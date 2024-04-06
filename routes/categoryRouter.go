@@ -9,7 +9,7 @@ import (
 func CategoryRouter(group fiber.Router, repo *controllers.Repository) {
 	// Rute for create category
 	group.Post("/create-category", repo.CreateCategory)
-	group.Get("/getAll-category", repo.GetAllCategory)
+	group.Get("/categories", repo.GetAllCategory)
 
 	group.Get("/storage/category/images/:id.png", repo.GetCategoryImage)
 
