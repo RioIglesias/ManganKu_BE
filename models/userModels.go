@@ -9,19 +9,20 @@ import (
 )
 
 type User struct {
-	User_ID         uint       `gorm:"primary_key"`
-	User_UUID       *uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4();uniqueIndex"`
-	Name            string     `gorm:"type:varchar(50);not null"`
-	Username        string     `gorm:"type:varchar(50);uniqueIndex;not null"`
-	Password        string     `gorm:"type:varchar;not null"`
-	Role            *int       `gorm:"type:int;default:1;not null"`
-	Provider        *string    `gorm:"type:varchar(50);default:'local';not null"`
-	FavoriteRecipes []Recipe   `gorm:"many2many:user_favorite_recipes;"`
-	Photo           string    `gorm:"null;default:''"`
-	Verified        *bool      `gorm:"not null;default:false"`
-	FileNamePhoto   string     `gorm:"uniqueIndex"`
-	CreatedAt       *time.Time `gorm:"not null;default:now()"`
-	UpdatedAt       *time.Time `gorm:"not null;default:now()"`
+	User_ID         uint              `gorm:"primary_key"`
+	User_UUID       *uuid.UUID        `gorm:"type:uuid;default:uuid_generate_v4();uniqueIndex"`
+	Name            string            `gorm:"type:varchar(50);not null"`
+	Username        string            `gorm:"type:varchar(50);uniqueIndex;not null"`
+	Password        string            `gorm:"type:varchar;not null"`
+	Role            *int              `gorm:"type:int;default:1;not null"`
+	Provider        *string           `gorm:"type:varchar(50);default:'local';not null"`
+	RecipeLikes     int               
+	UserRecipeLikes []UserRecipeLikes `gorm:"foreignKey:UserID"`
+	Photo           string            `gorm:"null;default:''"`
+	Verified        *bool             `gorm:"not null;default:false"`
+	FileNamePhoto   string            `gorm:"uniqueIndex"`
+	CreatedAt       *time.Time        `gorm:"not null;default:now()"`
+	UpdatedAt       *time.Time        `gorm:"not null;default:now()"`
 }
 
 type SignUpInput struct {
@@ -42,6 +43,7 @@ type UserResponse struct {
 	Name            string      `json:"name,omitempty"`
 	Username        string      `json:"username,omitempty"`
 	Role            int         `json:"role,omitempty"`
+	RecipeLikes     int         `json:"likes"`
 	FavoriteRecipes RecipeSlice `json:"favorite_recipes"`
 	Photo           string      `json:"photo,omitempty"`
 	Provider        string      `json:"provider"`
@@ -49,12 +51,14 @@ type UserResponse struct {
 	UpdatedAt       time.Time   `json:"updated_at"`
 }
 
+
 func FilterUserRecord(user *User) UserResponse {
 	return UserResponse{
 		User_ID:         user.User_ID,
 		Name:            user.Name,
 		Username:        user.Username,
-		FavoriteRecipes: user.FavoriteRecipes,
+		RecipeLikes:     user.RecipeLikes,
+		FavoriteRecipes: user.UserRecipeLikes,
 		Role:            *user.Role,
 		Photo:           user.Photo,
 		Provider:        *user.Provider,
@@ -70,7 +74,8 @@ func FilterAllUserRecord(users []User) []UserResponse {
 			User_ID:         user.User_ID,
 			Name:            user.Name,
 			Username:        user.Username,
-			FavoriteRecipes: user.FavoriteRecipes,
+			RecipeLikes:     user.RecipeLikes,
+			FavoriteRecipes: user.UserRecipeLikes,
 			Role:            *user.Role,
 			Photo:           user.Photo,
 			Provider:        *user.Provider,
@@ -104,12 +109,12 @@ func ValidateStruct[T any](payload T) []*ErrorResponse {
 	return errors
 }
 
-type RecipeSlice []Recipe
+type RecipeSlice []UserRecipeLikes
 
 // MarshalJSON mengimplementasikan metode MarshalJSON dari antarmuka json.Marshaler
 func (rs RecipeSlice) MarshalJSON() ([]byte, error) {
 	if rs == nil {
 		return []byte("[]"), nil
 	}
-	return json.Marshal([]Recipe(rs))
+	return json.Marshal([]UserRecipeLikes(rs))
 }
